@@ -1,22 +1,21 @@
 from flask import Flask, request, render_template
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
+import subprocess
 
 app = Flask(__name__)
 
-SCOPES = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def index():
-    msg = ""
-    if request.method == "POST":
-        symbol = request.form["symbol"].upper()
-        # Google Sheets Auth (keep your JSON file secure, use env vars in prod)
-        creds = ServiceAccountCredentials.from_json_keyfile_name("client_secret.json", SCOPES)
-        client = gspread.authorize(creds)
-        sheet = client.open("StockRequestSystem").worksheet("Requests")
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        sheet.append_row([symbol, "pending", now])
-        msg = f"✅ Request for {symbol} submitted!"
-    return render_template("index.html", message=msg)
+    return render_template("index.html")
+
+@app.route("/getdata", methods=["POST"])
+def getdata():
+    stock = request.form["stock"]
+    
+    # run your selenium script (pass stock if needed)
+    subprocess.run(["python", "sele.py", stock])
+
+    # fetch results (e.g., from CSV or SQLite)
+    with open("output.csv", "r") as f:
+        data = f.read()
+
+    return f"<h1>Data for {stock}</h1><pre>{data}</pre>"
