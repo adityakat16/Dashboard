@@ -399,6 +399,6 @@ def run_scraper(stock):
 # Allow standalone use:
 if __name__ == "__main__":
     stock_symbol = input("Enter stock name or symbol: ")
-result = run_scraper('tcs')
-print(result)
+    result = run_scraper(stock_symbol)
+    print(result)
 
