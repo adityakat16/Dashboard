@@ -273,7 +273,6 @@ for i in range(1, num_cols + 1):
 
 #EPS growth
 epsg=[]
-i=0
 epsg.append('0')
 for i in range(0, num_cols - 2):
     val=(eps[i+1]-eps[i])*100/eps[i]
@@ -290,44 +289,54 @@ for i in range(1, num_cols + 1):
     number_string = re.findall(r'[\d,\.]+', dpnum)
     if number_string:
         dp.append(dpnum)
-print(dp)
-
+        
 #promoter annual
 driver.find_element(By.XPATH,'//*[@id="shareholding"]/div[1]/div[2]/div[1]/button[2]').click()
 time.sleep(1)
 proan=[]
-i=2
-proan.append('NA')
-proan.append('NA')
-proan.append('NA')
-while i<11:
+proan_row = driver.find_elements(By.XPATH, '//*[@id="yearly-shp"]/div/table/tbody/tr[1]/td')
+num_cols = len(proan_row)
+if num_cols<nca :
+    for i in range(nca-num_cols):
+        proan.append("NA")
+
+for i in range(1, num_cols + 1):
     pronum=driver.find_element(By.XPATH,f'//*[@id="yearly-shp"]/div/table/tbody/tr[1]/td[{i}]').text
+    number_string = re.findall(r'[\d\.]+', pronum)
+    if not number_string: continue
     proan.append(pronum)
-    i+=1
 
 #FII% annual
 time.sleep(1)
 fiian=[]
-i=2
-fiian.append('NA')
-fiian.append('NA')
-fiian.append('NA')
-while i<11:
+afii_row = driver.find_elements(By.XPATH, '//*[@id="yearly-shp"]/div/table/tbody/tr[2]/td')
+num_cols = len(afii_row)
+if num_cols<nca :
+    for i in range(nca-num_cols):
+        fiian.append("NA")
+
+for i in range(1, num_cols + 1):
     fiinum=driver.find_element(By.XPATH,f'//*[@id="yearly-shp"]/div/table/tbody/tr[2]/td[{i}]').text
+    number_string = re.findall(r'[\d\.]+', fiinum)
+    if not number_string: continue
     fiian.append(fiinum)
-    i+=1
+
 
 #DII% annual
 time.sleep(1)
 diian=[]
-i=2
-diian.append('NA')
-diian.append('NA')
-diian.append('NA')
-while i<11:
-    diinum=driver.find_element(By.XPATH,f'//*[@id="yearly-shp"]/div/table/tbody/tr[2]/td[{i}]').text
+adii_row = driver.find_elements(By.XPATH, '//*[@id="yearly-shp"]/div/table/tbody/tr[3]/td')
+num_cols = len(adii_row)
+if num_cols<nca :
+    for i in range(nca-num_cols):
+        diian.append("NA")
+
+for i in range(1, num_cols + 1):
+    diinum=driver.find_element(By.XPATH,f'//*[@id="yearly-shp"]/div/table/tbody/tr[3]/td[{i}]').text
+    number_string = re.findall(r'[\d\.]+', diinum)
+    if not number_string: continue
     diian.append(diinum)
-    i+=1
+
 
 #ANNUAL ENDS HERE!
 
