@@ -332,4 +332,11 @@ while i<11:
 #ANNUAL ENDS HERE!
 
 
-driver.quit()
+driver.quit()    
+
+
+if __name__ == "__main__":
+    import sys
+    stock_symbol = sys.argv[1] if len(sys.argv) > 1 else input("Stock symbol: ")
+    data = run_scraper(stock_symbol)
+    print(data)  # Or save to a file/db as needed
