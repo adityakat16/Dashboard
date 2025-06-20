@@ -335,7 +335,7 @@ def run_scraper(stock):
     fhn=extract_number(F_HIGH)
     HLP=((cmpn-fln)*100)/(fhn-fln)
     roundedh = round(HLP, 2)
-    valper=str(roundedh)+"%"
+    hlper=str(roundedh)+"%"
     PB = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[5]/span[2]').text
     driver.find_element(By.XPATH, '//*[@id="company-chart-metrics"]/button[2]').click()
     time.sleep(1)
@@ -385,6 +385,7 @@ def run_scraper(stock):
         "CMP": CMP,
         "F_HIGH": F_HIGH,
         "F_LOW": F_LOW,
+        "HiLoPer":hlper,
         "PB": PB,
         "pe_1yr": pe_1yr,
         "pe_3yr": pe_3yr,
