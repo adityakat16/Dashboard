@@ -8,8 +8,18 @@ from webdriver_manager.chrome import ChromeDriverManager
 import time
 import re
 import sys
+import string
 sys.stdout.reconfigure(encoding='utf-8')
 
+def extract_number(text):
+    matches = re.findall(r'[\d,.]+', text)
+    if matches:
+        num = matches[0].replace(',', '')
+        try:
+            return float(num)
+        except ValueError:
+            pass
+    return 0.0
 
 def annual_info(driver):
     #Annual sales
@@ -17,25 +27,19 @@ def annual_info(driver):
     salesa_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[1]/td')
     num_cols = len(salesa_row)
     nca=num_cols
-    for i in range(1, num_cols + 1):
+    for i in range(2, num_cols + 1):
         svalue=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[1]/td[{i}]').text
-        number_string = re.findall(r'[\d,\.]+', svalue)
-        if number_string:
-            clean_string = number_string[0].replace(',', '')  # remove commas
-            salesnum = float(clean_string)
-            sales.append(salesnum)
+        salesnum = extract_number(svalue)
+        sales.append(salesnum)
 
     #Annual other income
     oincome=[]
     oia_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[1]/td')
     num_cols = len(oia_row)
-    for i in range(1, num_cols + 1):
+    for i in range(2, num_cols + 1):
         oivalue=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[5]/td[{i}]').text
-        number_string = re.findall(r'[\d,\.]+', oivalue)
-        if number_string:
-            clean_string = number_string[0].replace(',', '')  # remove commas
-            oinum = float(clean_string)
-            oincome.append(oinum)
+        oinum = extract_number(oivalue)
+        oincome.append(oinum)
 
     #total revenue
     totrev=[]
@@ -57,12 +61,9 @@ def annual_info(driver):
     np_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[10]/td')
     num_cols = len(np_row)
     for i in range(1, num_cols + 1):
-        npnum=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[10]/td[{i}]').text
-        number_string = re.findall(r'[\d,\.]+', npnum)
-        if number_string:
-            clean_string = number_string[0].replace(',', '')  # remove commas
-            npp = float(clean_string)
-            np.append(npp)
+        npnum=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[10]/td[{i}]').text        
+        npp = extract_number(npnum)
+        np.append(npp)
 
     #Net profit margin
     npm=[]
@@ -76,13 +77,10 @@ def annual_info(driver):
     eps=[]
     eps_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[11]/td')
     num_cols = len(eps_row)
-    for i in range(1, num_cols + 1):
-        epsnum=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[11]/td[{i}]').text
-        number_string = re.findall(r'[\d,\.]+', epsnum)
-        if number_string:
-            clean_string = number_string[0].replace(',', '')  # remove commas
-            epsn = float(clean_string)
-            eps.append(epsn)
+    for i in range(2, num_cols + 1):
+        epsnum=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[11]/td[{i}]').text        
+        epsn = extract_number(epsnum)
+        eps.append(epsn)
 
     #EPS growth
     epsg=[]
@@ -172,32 +170,27 @@ def quaterly_info(driver):
     sales_row = driver.find_elements(By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[1]/td')
     num_cols = len(sales_row)
     nc=num_cols
-    for i in range(1, num_cols + 1):
+    for i in range(2, num_cols + 1):
         qsvalue=driver.find_element(By.XPATH,f'//*[@id="quarters"]/div[3]/table/tbody/tr[1]/td[{i}]').text
-        number_string = re.findall(r'[\d,\.]+', qsvalue)
-        if number_string:
-            clean_string = number_string[0].replace(',', '')  # remove commas
-            qsalesnum = float(clean_string)
-            qsales.append(qsalesnum)
+        qsalesnum = extract_number(qsvalue)
+        qsales.append(qsalesnum)
+            
 
     #Quaterly other income
     qoincome=[]
     qoi_row = driver.find_elements(By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[5]/td')
     num_cols = len(qoi_row)
-    for i in range(1, num_cols + 1):
+    for i in range(2, num_cols + 1):
         qoivalue=driver.find_element(By.XPATH,f'//*[@id="quarters"]/div[3]/table/tbody/tr[5]/td[{i}]').text
-        number_string = re.findall(r'[\d,\.]+', qoivalue)
-        if number_string:
-            clean_string = number_string[0].replace(',', '')  # remove commas
-            qoinum = float(clean_string)
-            qoincome.append(qoinum)
+        qoinum = extract_number(qoivalue)
+        qoincome.append(qoinum)
 
     #total revenue quaterly
     qtotrev=[]
     for i in range(0, num_cols-1):
         val=qoincome[i]+qsales[i]
         qtotrev.append(val)
-
+    
     #revenue growth quaterly
     rgq=[]
     rgq.append('0')
@@ -213,11 +206,9 @@ def quaterly_info(driver):
     num_cols = len(npq_row)
     for i in range(1, num_cols + 1):
         npqnum=driver.find_element(By.XPATH,f'//*[@id="quarters"]/div[3]/table/tbody/tr[10]/td[{i}]').text
-        number_string = re.findall(r'[\d,\.]+', npqnum)
-        if number_string:
-            clean_string = number_string[0].replace(',', '')  # remove commas
-            nppq = float(clean_string)
-            npq.append(nppq)
+        nppq = extract_number(npqnum)
+        npq.append(nppq)
+            
 
     #Net profit margin
     npqm=[]
@@ -231,13 +222,10 @@ def quaterly_info(driver):
     epsq=[]
     epsq_row = driver.find_elements(By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[11]/td')
     num_cols = len(epsq_row)
-    for i in range(1, num_cols + 1):
+    for i in range(2, num_cols + 1):
         epsqnum=driver.find_element(By.XPATH,f'//*[@id="quarters"]/div[3]/table/tbody/tr[11]/td[{i}]').text
-        number_string = re.findall(r'[\d,\.]+', epsqnum)
-        if number_string:
-            clean_string = number_string[0].replace(',', '')  # remove commas
-            epsqn = float(clean_string)
-            epsq.append(epsqn)
+        epsqn = extract_number(epsqnum)
+        epsq.append(epsqn)
 
     #EPS growth quaterly
     epsgq=[]
@@ -311,7 +299,7 @@ def quaterly_info(driver):
     
     
 def run_scraper(stock):
-    # 👇 INITIALIZE webdriver
+    # INITIALIZE webdriver
     from selenium.webdriver.chrome.service import Service
     from webdriver_manager.chrome import ChromeDriverManager
     from selenium.webdriver.chrome.options import Options
@@ -339,15 +327,18 @@ def run_scraper(stock):
     FII = driver.find_element(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[2]/td[13]').text
     DII = driver.find_element(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[3]/td[13]').text
     PUBLIC = driver.find_element(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[5]/td[13]').text
-
-    CMP = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[2]/span[2]').text
+    CMP = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[2]/span[2]/span').text
     F_HIGH = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[3]/span[2]/span[1]').text
     F_LOW = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[3]/span[2]/span[2]').text
-
+    cmpn=extract_number(CMP)
+    fln=extract_number(F_LOW)
+    fhn=extract_number(F_HIGH)
+    HLP=((cmpn-fln)*100)/(fhn-fln)
+    roundedh = round(HLP, 2)
+    valper=str(roundedh)+"%"
     PB = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[5]/span[2]').text
     driver.find_element(By.XPATH, '//*[@id="company-chart-metrics"]/button[2]').click()
     time.sleep(1)
-
     #pe5yr
     pe_5yr_f = driver.find_element(By.XPATH, '//*[@id="chart-legend"]/label[2]/span').text
     pe5l = pe_5yr_f.split()
@@ -386,6 +377,7 @@ def run_scraper(stock):
     
     # RETURN collected data as a dict:
     return {
+        
         "PROMOTERS": PROMOTERS,
         "FII": FII,
         "DII": DII,
@@ -405,7 +397,7 @@ def run_scraper(stock):
 
 # Allow standalone use:
 if __name__ == "__main__":
-    stock_symbol = "TCS"  # Optional: for testing locally
-    result = run_scraper(stock_symbol)
-    print(result)
+    stock_symbol = input("Enter stock name or symbol: ")
+result = run_scraper('tcs')
+print(result)
 
