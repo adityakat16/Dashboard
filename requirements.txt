@@ -4,4 +4,3 @@ gspread
 oauth2client
 chromedriver-autoinstaller
 webdriver-manager
-sqlite3
