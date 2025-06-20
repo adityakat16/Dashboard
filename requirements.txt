@@ -1,2 +1,5 @@
-flask
-pandas
+Flask
+selenium
+gspread
+oauth2client
+chromedriver-autoinstaller
