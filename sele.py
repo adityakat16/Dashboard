@@ -304,6 +304,9 @@ def quaterly_info(driver):
     
     
 def run_scraper(stock):
+    #chrome driver autoinstaller
+    chromedriver_autoinstaller.install()
+    
     # Set Chrome options
     chrome_options = Options()
     chrome_options.add_argument("--headless")
