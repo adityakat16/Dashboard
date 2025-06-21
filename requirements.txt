@@ -4,4 +4,4 @@ gspread
 oauth2client
 undetected-chromedriver
 gunicorn
-webdrive-manager
+webdriver-manager
