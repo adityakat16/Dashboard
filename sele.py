@@ -317,7 +317,10 @@ def run_scraper(stock):
     chrome_options.add_argument("--disable-dev-shm-usage")
     
     # Launch browser
-    driver = uc.Chrome(options=chrome_options)
+    driver = uc.Chrome(
+    options=options,
+    browser_executable_path="/usr/bin/google-chrome")
+
     
     #navigate to screener.com
     driver.get("https://www.screener.in/")
