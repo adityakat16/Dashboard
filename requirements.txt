@@ -6,3 +6,4 @@ undetected-chromedriver
 gunicorn
 webdriver-manager
 setuptools
+chromedriver-autoinstaller
