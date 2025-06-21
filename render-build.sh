@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
 set -o errexit
 
-STORAGE_DIR=/opt/render/project/.render
+apt-get update && apt-get install -y wget unzip curl gnupg
 
-if [[ ! -d $STORAGE_DIR/chrome ]]; then
-  echo "...Downloading Chrome"
-  mkdir -p $STORAGE_DIR/chrome
-  cd $STORAGE_DIR/chrome
-  wget -P ./ https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-  dpkg -x ./google-chrome-stable_current_amd64.deb $STORAGE_DIR/chrome
-  rm ./google-chrome-stable_current_amd64.deb
-  cd $HOME/project/src
-else
-  echo "...Using Chrome from cache"
-fi
+# Install Chrome
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+apt install -y ./google-chrome-stable_current_amd64.deb
+
+# Install matching Chromedriver
+CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+wget -O chromedriver.zip "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+unzip chromedriver.zip
+mv chromedriver /usr/bin/chromedriver
+chmod +x /usr/bin/chromedriver
 
 pip install -r requirements.txt
-echo "Chrome binary:"
-ls -l /opt/render/project/.render/chrome/opt/google/chrome/google-chrome
