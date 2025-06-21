@@ -1,17 +1,22 @@
 from flask import Flask, request, render_template
-from sele import run_scraper  # import your scraper
+from sele import run_scraper
 import os
-
+import traceback
 
 app = Flask(__name__)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    data = None
     if request.method == "POST":
-        stock = request.form["stock"]
-        data = run_scraper(stock)
-    return render_template("index.html", data=data)
+        stock = request.form.get("stock")
+        if stock:
+            try:
+                data = run_scraper(stock)
+                return render_template("results.html", data=data)
+            except Exception as e:
+                traceback.print_exc()  # ✅ full error will show in logs
+                return f"<h3>❌ Error during scraping: {e}</h3>"
+    return render_template("index.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
