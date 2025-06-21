@@ -3,7 +3,7 @@ services:
     name: stock-dashboard
     env: python
     buildCommand: ./render-build.sh
-    startCommand: startCommand: export PATH="${PATH}:/opt/render/project/.render/chrome/opt/google/chrome:/opt/render/project/.render/chrome/opt/google/chrome/google-chrome" && gunicorn app:app
+    startCommand: export PATH="${PATH}:/opt/render/project/.render/chrome/opt/google/chrome:/opt/render/project/.render/chrome/opt/google/chrome/google-chrome" && gunicorn app:app
     pythonVersion: 3.11.9
     plan: free
     autoDeploy: true
