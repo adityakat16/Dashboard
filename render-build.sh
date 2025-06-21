@@ -16,3 +16,5 @@ else
 fi
 
 pip install -r requirements.txt
+echo "Chrome binary:"
+ls -l /opt/render/project/.render/chrome/opt/google/chrome/google-chrome
