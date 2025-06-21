@@ -319,9 +319,7 @@ def run_scraper(stock):
     
     driver = uc.Chrome(
         options=options,
-        browser_executable_path=chrome_path,
-        driver_executable_path="/usr/bin/chromedriver")
-
+        browser_executable_path=chrome_path)
     
     #navigate to screener.com
     driver.get("https://www.screener.in/")
