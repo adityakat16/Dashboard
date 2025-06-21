@@ -309,6 +309,7 @@ def run_scraper(stock):
     # Install chromedriver
     #chromedriver_autoinstaller.installimport undetected_chromedriver as uc
  
+  
     chrome_path = "/usr/bin/google-chrome"
     driver_path = "/usr/bin/chromedriver"
 
@@ -318,7 +319,8 @@ def run_scraper(stock):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    driver = webdriver.Chrome(executable_path=driver_path, options=options)
+    service = Service(executable_path=driver_path)
+    driver = webdriver.Chrome(service=service, options=options)
 
 
 
