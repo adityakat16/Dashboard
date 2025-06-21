@@ -5,3 +5,4 @@ oauth2client
 undetected-chromedriver
 gunicorn
 webdriver-manager
+setuptools
