@@ -308,7 +308,6 @@ def quaterly_info(driver):
 def run_scraper(stock):
     # Install chromedriver
     #chromedriver_autoinstaller.installimport undetected_chromedriver as uc
-import undetected_chromedriver as uc
 
     chrome_path = "/usr/bin/google-chrome"  
     
