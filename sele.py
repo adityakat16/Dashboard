@@ -307,7 +307,7 @@ def quaterly_info(driver):
     
 def run_scraper(stock):
     # Install chromedriver
-    chromedriver_autoinstaller.install()
+    #chromedriver_autoinstaller.install()
     
     # Set Chrome options
     chrome_options = uc.ChromeOptions()
