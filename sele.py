@@ -308,18 +308,19 @@ def quaterly_info(driver):
 def run_scraper(stock):
     # Install chromedriver
     #chromedriver_autoinstaller.install()
+
+
+    chrome_path = "/usr/bin/google-chrome"
     
-    # Set Chrome options
-    chrome_options = uc.ChromeOptions()
-    chrome_options.binary_location = "/usr/bin/google-chrome"  # Add this line
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
+    options = uc.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     
-    # Launch browser
     driver = uc.Chrome(
-    options=chrome_options,
-    browser_executable_path="/usr/bin/google-chrome")
+        options=options,
+        browser_executable_path=chrome_path,
+        driver_executable_path="/usr/bin/chromedriver")
 
     
     #navigate to screener.com
