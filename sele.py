@@ -1,14 +1,14 @@
 # sele.py
 import selenium
-#from selenium import webdriver
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-#from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import undetected_chromedriver as uc
-#import chromedriver_autoinstaller
+import chromedriver_autoinstaller
 import time
 import re
 import sys
@@ -308,17 +308,17 @@ def quaterly_info(driver):
 def run_scraper(stock):
     # Install chromedriver
     #chromedriver_autoinstaller.installimport undetected_chromedriver as uc
-    chrome_path = "/opt/render/project/.render/chrome/opt/google/chrome/google-chrome"
+ 
+    chrome_path = "/usr/bin/google-chrome"
+    driver_path = "/usr/bin/chromedriver"
 
-    options = uc.ChromeOptions()
+    options = Options()
+    options.binary_location = chrome_path
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    driver = uc.Chrome(
-        options=options,
-        browser_executable_path=chrome_path  # Explicit path as a string
-    )
+    driver = webdriver.Chrome(executable_path=driver_path, options=options)
 
 
 
