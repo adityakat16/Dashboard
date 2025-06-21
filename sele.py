@@ -318,7 +318,7 @@ def run_scraper(stock):
     
     # Launch browser
     driver = uc.Chrome(
-    options=options,
+    options=chrome_options,
     browser_executable_path="/usr/bin/google-chrome")
 
     
