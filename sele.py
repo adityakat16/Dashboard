@@ -8,6 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import undetected_chromedriver as uc
+import chromedriver_autoinstaller
 import time
 import re
 import sys
