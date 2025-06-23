@@ -2,7 +2,7 @@ services:
   - type: web
     name: stock-scraper
     env: python
-    buildCommand: bash render-build.sh
+    buildCommand: bash build.sh
     startCommand: >
       export PATH="$PATH:/usr/bin:/usr/local/bin" &&
       SELENIUM_MANAGER_SKIP_DOWNLOAD=true
@@ -10,4 +10,3 @@ services:
     pythonVersion: 3.11.9
     plan: free
     autoDeploy: true
-
