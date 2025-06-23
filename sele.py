@@ -307,18 +307,26 @@ def quaterly_info(driver):
     
 def run_scraper(stock):
     # Install chromedriver
-    #chromedriver_autoinstaller.installimport undetected_chromedriver as uc
- 
- 
-    options = Options()
-    options.binary_location = "/usr/bin/google-chrome"
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    #chromedriver_autoinstaller.installimport undetected_chromedriver as u
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")  # required in cloud
+    chrome_options.add_argument("--no-sandbox")    # prevents crashes in Linux containers
+    chrome_options.add_argument("--disable-dev-shm-usage")  # handles limited /dev/shm space
 
+    # Tell Selenium where Chrome is installed
+    chrome_options.binary_location = "/usr/bin/google-chrome"
+
+    # Tell Selenium where ChromeDriver is installed
     service = Service("/usr/local/bin/chromedriver")
-    driver = webdriver.Chrome(service=service, options=options)
 
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+
+    try:
+        # Replace this with your actual scraping logic
+        driver.get(f"https://www.example.com/stocks?q={stock_name}")
+        return driver.title  # or any other useful data
+    except Exception as e:
+        return f" Error during scraping: {e}"
 
 
         #navigate to screener.com
