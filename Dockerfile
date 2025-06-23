@@ -1,18 +1,8 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# Set environment vars
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-# Set working dir
-WORKDIR /app
-
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && \
-    apt-get install -y wget unzip curl gnupg2 && \
-    apt-get install -y fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 \
-    libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 libnspr4 libnss3 libx11-xcb1 libxcomposite1 \
-    libxdamage1 libxrandr2 xdg-utils libu2f-udev libvulkan1 && \
+    apt-get install -y wget unzip curl gnupg2 fonts-liberation libnss3 libatk-bridge2.0-0 libgtk-3-0 libdrm2 libgbm1 libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 libxtst6 libxrandr2 xdg-utils libasound2 libatk1.0-0 libxss1 libxext6 && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Chrome
@@ -20,8 +10,8 @@ RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd6
     apt install -y ./google-chrome-stable_current_amd64.deb && \
     rm google-chrome-stable_current_amd64.deb
 
-# Install chromedriver matching Chrome
-RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+') && \
+# Download matching chromedriver
+RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+') && \
     CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}") && \
     wget -q -O chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" && \
     unzip chromedriver.zip && \
@@ -29,14 +19,16 @@ RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+') &&
     chmod +x /usr/local/bin/chromedriver && \
     rm chromedriver.zip
 
-# Copy files
-COPY . /app/
+# Set display port
+ENV DISPLAY=:99
 
-# Install Python dependencies
+# Set workdir and install Python deps
+WORKDIR /app
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port
-EXPOSE 10000
+# Copy rest of the code
+COPY . .
 
-# Run the Flask app
+# Expose port and start
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000"]
