@@ -307,33 +307,16 @@ def quaterly_info(driver):
     
 def run_scraper(stock):
     # Install chromedriver
-    import shutil, os
+    #chromedriver_autoinstaller.installimport undetected_chromedriver as uc
 
-    print("🧭 PATH =", os.environ.get("PATH"))
-    print("📍 google-chrome path =", shutil.which("google-chrome"))
-    print("📍 chromedriver path =", shutil.which("chromedriver"))
-    print("📂 /usr/local/bin/chromedriver exists:", os.path.exists("/usr/local/bin/chromedriver"))
-    print("📂 /usr/local/bin/chromedriver is file:", os.path.isfile("/usr/local/bin/chromedriver"))
+  
 
-
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.binary_location = "/usr/bin/google-chrome"
-
-    service = Service("/usr/local/bin/chromedriver")
-
-    print("🚀 Chrome binary:", chrome_options.binary_location)
-    print("🚗 Chromedriver:", service.path)
-
-    try:
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.get(f"https://www.example.com?q={stock_name}")
-        return driver.title
-    except Exception as e:
-        return f"❌ Error during scraping: {e}"
-
+    options = uc.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    
+    driver = uc.Chrome(options=options)
 
         #navigate to screener.com
     driver.get("https://www.screener.in/")
@@ -423,4 +406,3 @@ if __name__ == "__main__":
     stock_symbol = input("Enter stock name or symbol: ")
     result = run_scraper(stock_symbol)
     print(result)
-
