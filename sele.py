@@ -307,8 +307,6 @@ def quaterly_info(driver):
     
 def run_scraper(stock):
     # Install chromedriver
-    #chromedriver_autoinstaller.installimport undetected_chromedriver as u
-    def run_scraper(stock_name):
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
