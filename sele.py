@@ -4,21 +4,58 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-import undetected_chromedriver as uc
-import chromedriver_autoinstaller
-import time
+# Remove these, as uc.Chrome handles its own driver
+# from webdriver_manager.chrome import ChromeDriverManager
+# from selenium.webdriver.chrome.service import Service
+# import chromedriver_autoinstaller
+
+from selenium.webdriver.chrome.options import Options # Keep Options for uc.Chrome
+import undetected_chromedriver as uc # Use uc
+import time # Keep time, but minimize its usage
 import re
 import sys
 import string
 import os
+import logging # Use logging instead of print for better server-side visibility
 
-sys.stdout.reconfigure(encoding='utf-8')
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+sys.stdout.reconfigure(encoding='utf-8') # Good for console output
+
+# --- Helper Function for Robust Element Finding ---
+def get_element_text(driver, by_method, locator, timeout=10, default_value="N/A", log_error=True):
+    """
+    Safely finds an element and extracts its text using explicit waits.
+    Returns default_value if element is not found within timeout.
+    """
+    try:
+        element = WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((by_method, locator))
+        )
+        return element.text.strip()
+    except Exception as e:
+        if log_error:
+            logging.warning(f"Could not find element with {by_method}='{locator}' within {timeout}s. Error: {e}. Setting to '{default_value}'.")
+        return default_value
+
+def get_elements(driver, by_method, locator, timeout=10, log_error=True):
+    """
+    Safely finds multiple elements using explicit waits.
+    Returns an empty list if elements are not found within timeout.
+    """
+    try:
+        elements = WebDriverWait(driver, timeout).until(
+            EC.presence_of_all_elements_located((by_method, locator))
+        )
+        return elements
+    except Exception as e:
+        if log_error:
+            logging.warning(f"Could not find any elements with {by_method}='{locator}' within {timeout}s. Error: {e}. Returning empty list.")
+        return []
 
 def extract_number(text):
+    # This function is good, keep it as is
     matches = re.findall(r'[\d,.]+', text)
     if matches:
         num = matches[0].replace(',', '')
@@ -29,380 +66,418 @@ def extract_number(text):
     return 0.0
 
 def annual_info(driver):
-    #Annual sales
-    sales=[]
-    salesa_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[1]/td')
-    num_cols = len(salesa_row)
-    nca=num_cols
+    annual_data = {}
+    
+    # --- Annual Sales ---
+    # Wait for the first row of sales data to be present
+    sales_cells = get_elements(driver, By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[1]/td')
+    sales = []
+    if not sales_cells:
+        logging.error("Could not find annual sales row. Skipping annual info.")
+        return {} # Return empty if core elements not found
+
+    # Assuming the first cell is a label, start from the second for data
+    num_cols = len(sales_cells)
+    nca = num_cols # Store num_cols for consistency checks
+
     for i in range(2, num_cols + 1):
-        svalue=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[1]/td[{i}]').text
+        svalue = get_element_text(driver, By.XPATH, f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[1]/td[{i}]')
         salesnum = extract_number(svalue)
         sales.append(salesnum)
+    annual_data["asales"] = sales
 
-    #Annual other income
-    oincome=[]
-    oia_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[1]/td')
-    num_cols = len(oia_row)
-    for i in range(2, num_cols + 1):
-        oivalue=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[5]/td[{i}]').text
+    # --- Annual Other Income ---
+    oincome = []
+    for i in range(2, num_cols + 1): # Use nca (num_cols from sales) for consistency
+        oivalue = get_element_text(driver, By.XPATH, f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[5]/td[{i}]')
         oinum = extract_number(oivalue)
         oincome.append(oinum)
+    annual_data["aOther_Income"] = oincome
 
-    #total revenue
-    totrev=[]
-    for i in range(0, num_cols-1):
-        val=oincome[i]+sales[i]
+    # --- Total Revenue ---
+    totrev = []
+    for i in range(0, len(sales) -1): # Adjust range based on actual sales length
+        val = oincome[i] + sales[i]
         totrev.append(val)
+    annual_data["aTotal_Revenue"] = totrev
 
-    #revenue growth
-    rg=[]
-    rg.append('0')
-    for i in range(0, num_cols - 2):
-        val=(totrev[i+1]-totrev[i])*100/totrev[i]
-        rounded = round(val, 2)
-        valper=str(rounded)+"%"
-        rg.append(valper)
+    # --- Revenue Growth ---
+    rg = ['0%'] # Initialize with string '0%'
+    for i in range(0, len(totrev) - 1): # Corrected loop for growth calculation
+        if totrev[i] != 0: # Avoid division by zero
+            val = (totrev[i+1] - totrev[i]) * 100 / totrev[i]
+            rounded = round(val, 2)
+            rg.append(f"{rounded}%")
+        else:
+            rg.append("N/A")
+    annual_data["aRevenue_Growth"] = rg
 
-    #consolidated net profit
-    np=[]
-    np_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[10]/td')
-    num_cols = len(np_row)
-    for i in range(1, num_cols + 1):
-        npnum=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[10]/td[{i}]').text        
+    # --- Consolidated Net Profit ---
+    np_cells = get_elements(driver, By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[10]/td')
+    np = []
+    for i in range(1, len(np_cells) + 1): # Loop through found cells
+        npnum = get_element_text(driver, By.XPATH, f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[10]/td[{i}]')
         npp = extract_number(npnum)
         np.append(npp)
+    annual_data["aNet_Profit"] = np
 
-    #Net profit margin
-    npm=[]
-    for i in range(0, num_cols - 1):
-        val=(np[i]/totrev[i])*100
-        rounded = round(val, 2)
-        strval=str(rounded)+'%'
-        npm.append(strval)
+    # --- Net Profit Margin ---
+    npm = []
+    for i in range(0, len(np) - 1): # Use actual length of np
+        if totrev[i] != 0: # Avoid division by zero
+            val = (np[i] / totrev[i]) * 100
+            rounded = round(val, 2)
+            npm.append(f"{rounded}%")
+        else:
+            npm.append("N/A")
+    annual_data["aNet_Profit_Margin"] = npm
 
-    #EPS
-    eps=[]
-    eps_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[11]/td')
-    num_cols = len(eps_row)
-    for i in range(2, num_cols + 1):
-        epsnum=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[11]/td[{i}]').text        
+    # --- EPS ---
+    eps_cells = get_elements(driver, By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[11]/td')
+    eps = []
+    for i in range(2, len(eps_cells) + 1): # Start from 2 if first is label
+        epsnum = get_element_text(driver, By.XPATH, f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[11]/td[{i}]')
         epsn = extract_number(epsnum)
         eps.append(epsn)
+    annual_data["aEPS"] = eps
 
-    #EPS growth
-    epsg=[]
-    epsg.append('0')
-    for i in range(0, num_cols - 2):
-        val=(eps[i+1]-eps[i])*100/eps[i]
-        rounded = round(val, 2)
-        valper=str(rounded)+"%"
-        epsg.append(valper)
+    # --- EPS Growth ---
+    epsg = ['0%'] # Initialize with string '0%'
+    for i in range(0, len(eps) - 1): # Corrected loop for growth calculation
+        if eps[i] != 0: # Avoid division by zero
+            val = (eps[i+1] - eps[i]) * 100 / eps[i]
+            rounded = round(val, 2)
+            epsg.append(f"{rounded}%")
+        else:
+            epsg.append("N/A")
+    annual_data["aEPS_Growth"] = epsg
 
-    #dividend payout
-    dp=[]
-    div_row = driver.find_elements(By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[12]/td')
-    num_cols = len(div_row)
-    for i in range(1, num_cols + 1):
-        dpnum=driver.find_element(By.XPATH,f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[12]/td[{i}]').text
+    # --- Dividend Payout ---
+    dp_cells = get_elements(driver, By.XPATH, '//*[@id="profit-loss"]/div[3]/table/tbody/tr[12]/td')
+    dp = []
+    for i in range(1, len(dp_cells) + 1):
+        dpnum = get_element_text(driver, By.XPATH, f'//*[@id="profit-loss"]/div[3]/table/tbody/tr[12]/td[{i}]')
+        # Here you extract number_string, but append dpnum (the original text).
+        # Adjust based on what you want to store (raw text or extracted number)
         number_string = re.findall(r'[\d,\.]+', dpnum)
-        if number_string:
+        if number_string: # Only append if a number-like string is found
             dp.append(dpnum)
+        else:
+            dp.append("N/A")
+    annual_data["aDivident_Payout"] = dp
 
-    #promoter annual
-    driver.find_element(By.XPATH,'//*[@id="shareholding"]/div[1]/div[2]/div[1]/button[2]').click()
-    time.sleep(1)
-    proan=[]
-    proan_row = driver.find_elements(By.XPATH, '//*[@id="yearly-shp"]/div/table/tbody/tr[1]/td')
-    num_cols = len(proan_row)
-    if num_cols<nca :
-        for i in range(nca-num_cols):
-            proan.append("NA")
+    # --- Promoter, FII, DII Annual (Shareholding) ---
+    # Click annual button and wait for table to be present
+    try:
+        driver.find_element(By.XPATH,'//*[@id="shareholding"]/div[1]/div[2]/div[1]/button[2]').click()
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="yearly-shp"]/div/table'))
+        )
+        logging.info("Clicked Annual shareholding and table loaded.")
+    except Exception as e:
+        logging.warning(f"Could not click Annual shareholding button or table not found: {e}")
+        # If this fails, the rest of annual shareholding will fail, so return what we have
+        return annual_data
 
-    for i in range(1, num_cols + 1):
-        pronum=driver.find_element(By.XPATH,f'//*[@id="yearly-shp"]/div/table/tbody/tr[1]/td[{i}]').text
-        number_string = re.findall(r'[\d\.]+', pronum)
-        if not number_string: continue
-        proan.append(pronum)
-
-    #FII% annual
-    time.sleep(1)
-    fiian=[]
-    afii_row = driver.find_elements(By.XPATH, '//*[@id="yearly-shp"]/div/table/tbody/tr[2]/td')
-    num_cols = len(afii_row)
-    if num_cols<nca :
-        for i in range(nca-num_cols):
-            fiian.append("NA")
-
-    for i in range(1, num_cols + 1):
-        fiinum=driver.find_element(By.XPATH,f'//*[@id="yearly-shp"]/div/table/tbody/tr[2]/td[{i}]').text
-        number_string = re.findall(r'[\d\.]+', fiinum)
-        if not number_string: continue
-        fiian.append(fiinum)
-
-
-    #DII% annual
-    time.sleep(1)
-    diian=[]
-    adii_row = driver.find_elements(By.XPATH, '//*[@id="yearly-shp"]/div/table/tbody/tr[3]/td')
-    num_cols = len(adii_row)
-    if num_cols<nca :
-        for i in range(nca-num_cols):
-            diian.append("NA")
-
-    for i in range(1, num_cols + 1):
-        diinum=driver.find_element(By.XPATH,f'//*[@id="yearly-shp"]/div/table/tbody/tr[3]/td[{i}]').text
-        number_string = re.findall(r'[\d\.]+', diinum)
-        if not number_string: continue
-        diian.append(diinum)
-    return {
-        "asales": sales,
-        "aOther_Income": oincome,
-        "aTotal_Revenue": totrev,
-        "aRevenue_Growth":rg,
-        "aNet_Profit":np,
-        "aNet_Profit_Margin": npm,
-        "aEPS": eps,        
-        "aEPS_Growth": epsg,
-        "aDivident_Payout": dp,
-        "aPromoter": proan,
-        "aFII": fiian,
-        "aDII": diian
+    # This part can be generalized for all shareholding types (Promoter, FII, DII)
+    shareholding_types = {
+        "aPromoter": 1,
+        "aFII": 2,
+        "aDII": 3
     }
     
+    for key, row_idx in shareholding_types.items():
+        current_list = []
+        shp_cells = get_elements(driver, By.XPATH, f'//*[@id="yearly-shp"]/div/table/tbody/tr[{row_idx}]/td')
+        
+        # Ensure 'nca' (number of columns from profit-loss) is defined if needed for NA padding
+        # If shp_cells are fewer than nca, prepend 'NA'
+        if nca and len(shp_cells) < nca:
+            for _ in range(nca - len(shp_cells)):
+                current_list.append("NA")
+
+        for cell_idx in range(1, len(shp_cells) + 1):
+            sh_val = get_element_text(driver, By.XPATH, f'//*[@id="yearly-shp"]/div/table/tbody/tr[{row_idx}]/td[{cell_idx}]')
+            number_string = re.findall(r'[\d\.]+', sh_val)
+            if not number_string:
+                current_list.append("N/A") # Changed from 'continue' to append 'N/A'
+            else:
+                current_list.append(sh_val)
+        annual_data[key] = current_list
     
-    
+    return annual_data
+
 def quaterly_info(driver):
-    #Quaterly sales
-    qsales=[]
-    sales_row = driver.find_elements(By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[1]/td')
-    num_cols = len(sales_row)
-    nc=num_cols
+    quaterly_data = {}
+
+    # --- Quarterly Sales ---
+    qsales_cells = get_elements(driver, By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[1]/td')
+    qsales = []
+    if not qsales_cells:
+        logging.error("Could not find quarterly sales row. Skipping quarterly info.")
+        return {}
+
+    num_cols = len(qsales_cells)
+    nc = num_cols
+
     for i in range(2, num_cols + 1):
-        qsvalue=driver.find_element(By.XPATH,f'//*[@id="quarters"]/div[3]/table/tbody/tr[1]/td[{i}]').text
+        qsvalue = get_element_text(driver, By.XPATH, f'//*[@id="quarters"]/div[3]/table/tbody/tr[1]/td[{i}]')
         qsalesnum = extract_number(qsvalue)
         qsales.append(qsalesnum)
-            
+    quaterly_data["qsales"] = qsales
 
-    #Quaterly other income
-    qoincome=[]
-    qoi_row = driver.find_elements(By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[5]/td')
-    num_cols = len(qoi_row)
+    # --- Quarterly Other Income ---
+    qoincome = []
     for i in range(2, num_cols + 1):
-        qoivalue=driver.find_element(By.XPATH,f'//*[@id="quarters"]/div[3]/table/tbody/tr[5]/td[{i}]').text
+        qoivalue = get_element_text(driver, By.XPATH, f'//*[@id="quarters"]/div[3]/table/tbody/tr[5]/td[{i}]')
         qoinum = extract_number(qoivalue)
         qoincome.append(qoinum)
+    quaterly_data["qOther_Income"] = qoincome
 
-    #total revenue quaterly
-    qtotrev=[]
-    for i in range(0, num_cols-1):
-        val=qoincome[i]+qsales[i]
+    # --- Total Revenue Quarterly ---
+    qtotrev = []
+    for i in range(0, len(qsales) - 1): # Adjusted range
+        val = qoincome[i] + qsales[i]
         qtotrev.append(val)
-    
-    #revenue growth quaterly
-    rgq=[]
-    rgq.append('0')
-    for i in range(0, num_cols - 2):
-        val=(qtotrev[i+1]-qtotrev[i])*100/qtotrev[i]
-        rounded = round(val, 2)
-        valper=str(rounded)+"%"
-        rgq.append(valper)
+    quaterly_data["qTotal_Revenue"] = qtotrev
 
-    #consolidated net profit quaterly
-    npq=[]
-    npq_row = driver.find_elements(By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[1]/td')
-    num_cols = len(npq_row)
-    for i in range(1, num_cols + 1):
-        npqnum=driver.find_element(By.XPATH,f'//*[@id="quarters"]/div[3]/table/tbody/tr[10]/td[{i}]').text
+    # --- Revenue Growth Quarterly ---
+    rgq = ['0%']
+    for i in range(0, len(qtotrev) - 1):
+        if qtotrev[i] != 0:
+            val = (qtotrev[i+1] - qtotrev[i]) * 100 / qtotrev[i]
+            rounded = round(val, 2)
+            rgq.append(f"{rounded}%")
+        else:
+            rgq.append("N/A")
+    quaterly_data["qRevenue_Growth"] = rgq
+
+    # --- Consolidated Net Profit Quarterly ---
+    # NOTE: The XPath for npq_row was //*[@id="quarters"]/div[3]/table/tbody/tr[1]/td in your original, which seems wrong (it's the sales row).
+    # Assuming it should be tr[10] like annual info. Please verify this XPath.
+    npq_cells = get_elements(driver, By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[10]/td')
+    npq = []
+    for i in range(1, len(npq_cells) + 1):
+        npqnum = get_element_text(driver, By.XPATH, f'//*[@id="quarters"]/div[3]/table/tbody/tr[10]/td[{i}]')
         nppq = extract_number(npqnum)
         npq.append(nppq)
-            
+    quaterly_data["qNet_Profit"] = npq
 
-    #Net profit margin
-    npqm=[]
-    for i in range(0, num_cols - 1):
-        val=(npq[i]/qtotrev[i])*100
-        rounded = round(val, 2)
-        strval=str(rounded)+'%'
-        npqm.append(strval)
+    # --- Net Profit Margin Quarterly ---
+    npqm = []
+    for i in range(0, len(npq) - 1):
+        if qtotrev[i] != 0:
+            val = (npq[i] / qtotrev[i]) * 100
+            rounded = round(val, 2)
+            npqm.append(f"{rounded}%")
+        else:
+            npqm.append("N/A")
+    quaterly_data["qNet_Profit_Margin"] = npqm
 
-    #EPS quaterly
-    epsq=[]
-    epsq_row = driver.find_elements(By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[11]/td')
-    num_cols = len(epsq_row)
-    for i in range(2, num_cols + 1):
-        epsqnum=driver.find_element(By.XPATH,f'//*[@id="quarters"]/div[3]/table/tbody/tr[11]/td[{i}]').text
+    # --- EPS Quarterly ---
+    epsq_cells = get_elements(driver, By.XPATH, '//*[@id="quarters"]/div[3]/table/tbody/tr[11]/td')
+    epsq = []
+    for i in range(2, len(epsq_cells) + 1):
+        epsqnum = get_element_text(driver, By.XPATH, f'//*[@id="quarters"]/div[3]/table/tbody/tr[11]/td[{i}]')
         epsqn = extract_number(epsqnum)
         epsq.append(epsqn)
+    quaterly_data["qEPS"] = epsq
 
-    #EPS growth quaterly
-    epsgq=[]
-    epsgq.append('0')
-    for i in range(0, num_cols - 2):
-        val=(epsq[i+1]-epsq[i])*100/epsq[i]
-        rounded = round(val, 2)
-        valper=str(rounded)+"%"
-        epsgq.append(valper)
+    # --- EPS Growth Quarterly ---
+    epsgq = ['0%']
+    for i in range(0, len(epsq) - 1):
+        if epsq[i] != 0:
+            val = (epsq[i+1] - epsq[i]) * 100 / epsq[i]
+            rounded = round(val, 2)
+            epsgq.append(f"{rounded}%")
+        else:
+            epsgq.append("N/A")
+    quaterly_data["qEPS_Growth"] = epsgq
 
-    #promoter quaterly
-    qpro=[]
-    qpro_row = driver.find_elements(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[1]/td')
-    num_cols = len(qpro_row)
-    if num_cols<nc :
-        for i in range(nc-num_cols):
-            qpro.append("NA")
-
-    for i in range(1, num_cols + 1):
-        qpronum=driver.find_element(By.XPATH,f'//*[@id="quarterly-shp"]/div/table/tbody/tr[1]/td[{i}]').text
-        number_string = re.findall(r'[\d\.]+', qpronum)
-        if not number_string: continue
-        qpro.append(qpronum)
-
-    #FII% quaterly
-    qfii=[]
-    qfii_row = driver.find_elements(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[1]/td')
-    num_cols = len(qfii_row)
-    if num_cols<nc :
-        for i in range(nc-num_cols):
-            qfii.append("NA")
-
-    for i in range(1, num_cols + 1):
-        qfiinum=driver.find_element(By.XPATH,f'//*[@id="quarterly-shp"]/div/table/tbody/tr[2]/td[{i}]').text
-        number_string = re.findall(r'[\d\.]+', qfiinum)
-        if not number_string: continue
-        qfii.append(qfiinum)
-
-    #DII% quaterly
-    qdii=[]
-    qdii_row = driver.find_elements(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[1]/td')
-    num_cols = len(qdii_row)
-    if num_cols<nc :
-        for i in range(nc-num_cols):
-            qdii.append("NA")
-
-    for i in range(1, num_cols + 1):
-        qdiinum=driver.find_element(By.XPATH,f'//*[@id="quarterly-shp"]/div/table/tbody/tr[3]/td[{i}]').text
-        number_string = re.findall(r'[\d\.]+', qfiinum)
-        if not number_string: continue
-        qdii.append(qdiinum)
-
-    return {
-        "qsales": qsales,
-        "qOther_Income": qoincome,
-        "qTotal_Revenue": qtotrev,
-        "qRevenue_Growth":rgq,
-        "qNet_Profit":npq,
-        "qNet_Profit_Margin": npqm,
-        "qEPS": epsq,        
-        "qEPS_Growth": epsgq,
-        "qPromoter": qpro,
-        "qFII": qfii,
-        "qDII": qdii
+    # --- Promoter, FII, DII Quarterly (Shareholding) ---
+    # These XPaths were all pointing to tr[1]/td for num_cols calculation.
+    # Corrected to use common pattern, ensure correct row for each.
+    shareholding_types = {
+        "qPromoter": 1,
+        "qFII": 2,
+        "qDII": 3 # Assuming DII is row 3 like annual
     }
+    
+    for key, row_idx in shareholding_types.items():
+        current_list = []
+        shp_cells = get_elements(driver, By.XPATH, f'//*[@id="quarterly-shp"]/div/table/tbody/tr[{row_idx}]/td')
+        
+        if nc and len(shp_cells) < nc: # Use 'nc' from quarterly sales
+            for _ in range(nc - len(shp_cells)):
+                current_list.append("NA")
 
+        for cell_idx in range(1, len(shp_cells) + 1):
+            sh_val = get_element_text(driver, By.XPATH, f'//*[@id="quarterly-shp"]/div/table/tbody/tr[{row_idx}]/td[{cell_idx}]')
+            number_string = re.findall(r'[\d\.]+', sh_val)
+            if not number_string:
+                current_list.append("N/A")
+            else:
+                current_list.append(sh_val)
+        quaterly_data[key] = current_list
 
-    #Quaterly info ends here   
-    
-    
-    
-    
+    return quaterly_data
+
 def run_scraper(stock):
-    # Install chromedriver
-    #chromedriver_autoinstaller.installimport undetected_chromedriver as uc
-
-  
-
     options = uc.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36")
+    # Add a window size to prevent elements from being hidden on a small default headless window
+    options.add_argument("--window-size=1920,1080")
     
-    driver = uc.Chrome(options=options)
+    driver = None # Initialize to None for finally block
+    try:
+        driver = uc.Chrome(options=options)
+        logging.info(f"Selenium WebDriver initialized for {stock} using undetected_chromedriver.")
 
-        #navigate to screener.com
-    driver.get("https://www.screener.in/")
+        # Navigate to screener.in and wait for search input
+        driver.get("https://www.screener.in/")
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "/html/body/main/div[2]/div/div/div/input"))
+        )
+        logging.info("Screener.in loaded. Entering stock symbol.")
 
-    #driver.maximize_window()
-    # ENTER user-specified stock
-    driver.find_element(By.XPATH, "/html/body/main/div[2]/div/div/div/input").send_keys(stock)
-    time.sleep(1)
-    driver.find_element(By.XPATH, "/html/body/main/div[2]/div/div/div/ul/li[1]").click()
-
-    #shareholding patterns
-    PROMOTERS = driver.find_element(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[1]/td[13]').text
-    FII = driver.find_element(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[2]/td[13]').text
-    DII = driver.find_element(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[3]/td[13]').text
-    PUBLIC = driver.find_element(By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[5]/td[13]').text
-    CMP = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[2]/span[2]/span').text
-    F_HIGH = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[3]/span[2]/span[1]').text
-    F_LOW = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[3]/span[2]/span[2]').text
-    cmpn=extract_number(CMP)
-    fln=extract_number(F_LOW)
-    fhn=extract_number(F_HIGH)
-    HLP=((cmpn-fln)*100)/(fhn-fln)
-    roundedh = round(HLP, 2)
-    hlper=str(roundedh)+"%"
-    PB = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[5]/span[2]').text
-    driver.find_element(By.XPATH, '//*[@id="company-chart-metrics"]/button[2]').click()
-    time.sleep(1)
-    #pe5yr
-    pe_5yr_f = driver.find_element(By.XPATH, '//*[@id="chart-legend"]/label[2]/span').text
-    pe5l = pe_5yr_f.split()
-    pe_5yr = pe5l[3]
-
-    #pe3yr
-    driver.find_element(By.XPATH, '//*[@id="company-chart-days"]/button[4]').click()
-    time.sleep(1)
-    pe_3yr_f = driver.find_element(By.XPATH, '/html/body/main/section[1]/div[3]/label[2]/span').text
-    pe3l = pe_3yr_f.split()
-    pe_3yr = pe3l[3]
-
-    #pe1yr
-    driver.find_element(By.XPATH, '//*[@id="company-chart-days"]/button[3]').click()
-    time.sleep(1)
-    pe_1yr_f = driver.find_element(By.XPATH, '//*[@id="chart-legend"]/label[2]/span').text
-    pe1l = pe_1yr_f.split()
-    pe_1yr = pe1l[3]
-
-    #pe10yr
-    driver.find_element(By.XPATH, '//*[@id="company-chart-days"]/button[6]').click()
-    time.sleep(1)
-    pe_10yr_f = driver.find_element(By.XPATH, '//*[@id="chart-legend"]/label[2]/span').text
-    pe10l = pe_10yr_f.split()
-    pe_10yr = pe10l[3]
-
-    #DY
-    DY = driver.find_element(By.XPATH, '//*[@id="top-ratios"]/li[6]/span[2]/span').text
-    
-    #Run the two functions
-    quaterly_data=quaterly_info(driver)
-    annual_data = annual_info(driver)
-
-    # At the end, close driver:
-    driver.quit()
-    
-    # RETURN collected data as a dict:
-    return {
+        # ENTER user-specified stock
+        search_input = driver.find_element(By.XPATH, "/html/body/main/div[2]/div/div/div/input")
+        search_input.send_keys(stock)
         
-        "PROMOTERS": PROMOTERS,
-        "FII": FII,
-        "DII": DII,
-        "PUBLIC": PUBLIC,
-        "CMP": CMP,
-        "F_HIGH": F_HIGH,
-        "F_LOW": F_LOW,
-        "HiLoPer":hlper,
-        "PB": PB,
-        "pe_1yr": pe_1yr,
-        "pe_3yr": pe_3yr,
-        "pe_5yr": pe_5yr,
-        "pe_10yr": pe_10yr,
-        "DY": DY,
-        **quaterly_data,
-        **annual_data
-    }
+        # Wait for search suggestion to appear and click the first one
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "/html/body/main/div[2]/div/div/div/ul/li[1]"))
+        ).click()
+        logging.info(f"Clicked on first search suggestion for {stock}.")
+
+        # Wait for the company page to load, e.g., company name H1
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//h1[@class='margin-0 margin-bottom-1']"))
+        )
+        logging.info(f"Company page loaded for {stock}.")
+
+        # --- Scraping main ratios and shareholding patterns ---
+        # Replaced direct find_element with get_element_text helper
+        PROMOTERS = get_element_text(driver, By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[1]/td[13]')
+        FII = get_element_text(driver, By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[2]/td[13]')
+        DII = get_element_text(driver, By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[3]/td[13]')
+        PUBLIC = get_element_text(driver, By.XPATH, '//*[@id="quarterly-shp"]/div/table/tbody/tr[5]/td[13]')
+        CMP = get_element_text(driver, By.XPATH, '//*[@id="top-ratios"]/li[2]/span[2]/span')
+        F_HIGH = get_element_text(driver, By.XPATH, '//*[@id="top-ratios"]/li[3]/span[2]/span[1]')
+        F_LOW = get_element_text(driver, By.XPATH, '//*[@id="top-ratios"]/li[3]/span[2]/span[2]')
+        
+        cmpn=extract_number(CMP)
+        fln=extract_number(F_LOW)
+        fhn=extract_number(F_HIGH)
+        HLP = 0.0
+        if fhn - fln != 0: # Avoid division by zero
+            HLP = ((cmpn - fln) * 100) / (fhn - fln)
+        roundedh = round(HLP, 2)
+        hlper=f"{roundedh}%"
+        
+        PB = get_element_text(driver, By.XPATH, '//*[@id="top-ratios"]/li[5]/span[2]')
+
+        # Click for PE 5yr chart data and wait for it to update
+        try:
+            driver.find_element(By.XPATH, '//*[@id="company-chart-metrics"]/button[2]').click() # PE button
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="chart-legend"]/label[2]/span')) # Wait for PE legend
+            )
+            logging.info("Clicked PE chart metric.")
+        except Exception as e:
+            logging.warning(f"Could not click PE chart metric button: {e}")
+
+        pe_5yr_f = get_element_text(driver, By.XPATH, '//*[@id="chart-legend"]/label[2]/span')
+        pe5l = pe_5yr_f.split()
+        pe_5yr = pe5l[3] if len(pe5l) > 3 else "N/A"
+
+        # Click for PE 3yr chart data
+        try:
+            driver.find_element(By.XPATH, '//*[@id="company-chart-days"]/button[4]').click()
+            WebDriverWait(driver, 5).until( # Wait for the element that updates for 3yr
+                EC.presence_of_element_located((By.XPATH, '/html/body/main/section[1]/div[3]/label[2]/span')) # Check if this XPath truly updates or if it's the same
+            )
+            logging.info("Clicked 3yr chart period.")
+        except Exception as e:
+            logging.warning(f"Could not click 3yr chart period button: {e}")
+
+        pe_3yr_f = get_element_text(driver, By.XPATH, '/html/body/main/section[1]/div[3]/label[2]/span')
+        pe3l = pe_3yr_f.split()
+        pe_3yr = pe3l[3] if len(pe3l) > 3 else "N/A"
+
+        # Click for PE 1yr chart data
+        try:
+            driver.find_element(By.XPATH, '//*[@id="company-chart-days"]/button[3]').click()
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="chart-legend"]/label[2]/span'))
+            )
+            logging.info("Clicked 1yr chart period.")
+        except Exception as e:
+            logging.warning(f"Could not click 1yr chart period button: {e}")
+
+        pe_1yr_f = get_element_text(driver, By.XPATH, '//*[@id="chart-legend"]/label[2]/span')
+        pe1l = pe_1yr_f.split()
+        pe_1yr = pe1l[3] if len(pe1l) > 3 else "N/A"
+
+        # Click for PE 10yr chart data
+        try:
+            driver.find_element(By.XPATH, '//*[@id="company-chart-days"]/button[6]').click()
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="chart-legend"]/label[2]/span'))
+            )
+            logging.info("Clicked 10yr chart period.")
+        except Exception as e:
+            logging.warning(f"Could not click 10yr chart period button: {e}")
+
+        pe_10yr_f = get_element_text(driver, By.XPATH, '//*[@id="chart-legend"]/label[2]/span')
+        pe10l = pe_10yr_f.split()
+        pe_10yr = pe10l[3] if len(pe10l) > 3 else "N/A"
+
+        DY = get_element_text(driver, By.XPATH, '//*[@id="top-ratios"]/li[6]/span[2]/span')
+        
+        # Run the two functions
+        # Ensure these functions also use the get_element_text helper
+        quaterly_data = quaterly_info(driver)
+        annual_data = annual_info(driver)
+
+        # RETURN collected data as a dict:
+        return {
+            "PROMOTERS": PROMOTERS,
+            "FII": FII,
+            "DII": DII,
+            "PUBLIC": PUBLIC,
+            "CMP": CMP,
+            "F_HIGH": F_HIGH,
+            "F_LOW": F_LOW,
+            "HiLoPer": hlper,
+            "PB": PB,
+            "pe_1yr": pe_1yr,
+            "pe_3yr": pe_3yr,
+            "pe_5yr": pe_5yr,
+            "pe_10yr": pe_10yr,
+            "DY": DY,
+            **quaterly_data,
+            **annual_data
+        }
+
+    except Exception as e:
+        logging.error(f"An unexpected error occurred in run_scraper for {stock}: {e}")
+        return None
+    finally:
+        if driver:
+            driver.quit()
+            logging.info("Selenium WebDriver quit.")
 
 # Allow standalone use:
 if __name__ == "__main__":
     stock_symbol = input("Enter stock name or symbol: ")
     result = run_scraper(stock_symbol)
-    print(result)
+    if result:
+        # If running standalone, print the result in a readable format
+        for key, value in result.items():
+            print(f"{key}: {value}")
+    else:
+        print("Scraping failed or returned no data.")
