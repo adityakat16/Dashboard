@@ -4,8 +4,86 @@
     <meta charset="UTF-8">
     <title>Stock Info Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;500&display=swap" rel="stylesheet">
-    <style>
-        /* ... (Your existing CSS) ... */
+  <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Rubik', sans-serif;
+            background: linear-gradient(135deg, #ffe2e2, #8ec5fc);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(12px);
+            padding: 40px 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            font-weight: 500;
+            color: #4a3f55;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .timestamp {
+            font-size: 14px;
+            color: #6f6f6f;
+            margin-bottom: 25px;
+        }
+
+        form input[type="text"] {
+            padding: 12px 20px;
+            width: 80%;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;    
+            outline: none;
+            margin-bottom: 15px;
+            background-color: #fff;
+            color: #333;
+            transition: border-color 0.3s ease;
+        }
+
+        form input[type="text"]:focus {
+            border-color: #8f94fb;
+        }
+
+        form button {
+            background-color: #a18cd1;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        form button:hover {
+            background-color: #8f94fb;
+        }
+
+        .result {
+            margin-top: 25px;
+            font-size: 15px;
+            background: #ffffffde;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+            color: #3b3b3b;
+        }
     </style>
 </head>
 <body>
