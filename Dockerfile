@@ -1,35 +1,42 @@
-FROM python:3.11-slim
+# Use a base image that includes Python and has a good foundation for Chrome
+FROM python:3.9-slim-buster
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install base dependencies
+# Install Chrome and its dependencies
+# This is a common set of dependencies for Chrome headless
 RUN apt-get update && apt-get install -y \
-    wget unzip curl gnupg \
-    ca-certificates fonts-liberation \
-    libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 \
-    libdbus-1-3 libgdk-pixbuf2.0-0 libnspr4 libnss3 libx11-xcb1 libxcomposite1 \
-    libxdamage1 libxrandr2 xdg-utils --no-install-recommends
+    gnupg \
+    wget \
+    curl \
+    unzip \
+    fontconfig \
+    libnspr4 \
+    libnss3 \
+    libxss1 \
+    libappindicator1 \
+    libindicator7 \
+    fonts-liberation \
+    xdg-utils \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome (version 125)
-RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y ./google-chrome-stable_current_amd64.deb && \
-    rm google-chrome-stable_current_amd64.deb
+# Download and install Google Chrome
+# Using the stable version
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update && apt-get install -y google-chrome-stable
 
-# Install matching ChromeDriver (version 125.0.6422.112)
-RUN wget -q -O chromedriver.zip https://chromedriver.storage.googleapis.com/125.0.6422.112/chromedriver_linux64.zip && \
-    unzip chromedriver.zip && \
-    mv chromedriver /usr/local/bin/chromedriver && \
-    chmod +x /usr/local/bin/chromedriver && \
-    rm chromedriver.zip
-
-# Set env for headless chrome
-ENV DISPLAY=:99
-
+# Set working directory
 WORKDIR /app
-COPY . .
 
-# Install Python packages
+# Copy requirements.txt and install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Start Flask app
-CMD ["gunicorn", "app:app"]
+# Copy the rest of your application code
+COPY . .
+
+# Expose the port your Flask app will run on
+EXPOSE 10000 # Render typically maps internal port 10000
+
+# Command to run the application using Gunicorn
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000"]
