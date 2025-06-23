@@ -3,7 +3,10 @@ services:
     name: stock-dashboard
     env: python
     buildCommand: ./render-build.sh
-    startCommand: export PATH="${PATH}:/usr/bin:/usr/local/bin" && SELENIUM_MANAGER_SKIP_DOWNLOAD=true gunicorn app:app
+    startCommand: >
+      export PATH="$PATH:/usr/bin:/usr/local/bin" &&
+      SELENIUM_MANAGER_SKIP_DOWNLOAD=true
+      gunicorn app:app
     pythonVersion: 3.11.9
     plan: free
     autoDeploy: true
