@@ -4,26 +4,20 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-# Remove these, as uc.Chrome handles its own driver
-# from webdriver_manager.chrome import ChromeDriverManager
-# from selenium.webdriver.chrome.service import Service
-# import chromedriver_autoinstaller
-
-from selenium.webdriver.chrome.options import Options # Keep Options for uc.Chrome
-import undetected_chromedriver as uc # Use uc
-import time # Keep time, but minimize its usage
+from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
+import time 
 import re
 import sys
 import string
 import os
-import logging # Use logging instead of print for better server-side visibility
+import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 sys.stdout.reconfigure(encoding='utf-8') # Good for console output
 
-# --- Helper Function for Robust Element Finding ---
 def get_element_text(driver, by_method, locator, timeout=10, default_value="N/A", log_error=True):
     """
     Safely finds an element and extracts its text using explicit waits.
