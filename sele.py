@@ -307,6 +307,14 @@ def quaterly_info(driver):
     
 def run_scraper(stock):
     # Install chromedriver
+    import shutil, os
+
+    print("🧭 PATH =", os.environ.get("PATH"))
+    print("📍 google-chrome path =", shutil.which("google-chrome"))
+    print("📍 chromedriver path =", shutil.which("chromedriver"))
+    print("📂 /usr/local/bin/chromedriver exists:", os.path.exists("/usr/local/bin/chromedriver"))
+    print("📂 /usr/local/bin/chromedriver is file:", os.path.isfile("/usr/local/bin/chromedriver"))
+
 
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
