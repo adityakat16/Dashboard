@@ -307,6 +307,7 @@ def quaterly_info(driver):
     
 def run_scraper(stock):
     # Install chromedriver
+
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
@@ -314,13 +315,16 @@ def run_scraper(stock):
     chrome_options.binary_location = "/usr/bin/google-chrome"
 
     service = Service("/usr/local/bin/chromedriver")
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+
+    print("🚀 Chrome binary:", chrome_options.binary_location)
+    print("🚗 Chromedriver:", service.path)
 
     try:
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         driver.get(f"https://www.example.com?q={stock_name}")
         return driver.title
     except Exception as e:
-        return f"Error during scraping: {e}"
+        return f"❌ Error during scraping: {e}"
 
 
         #navigate to screener.com
