@@ -77,7 +77,18 @@ def index():
 
             cmd.append(url)
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            # --- IMPORTANT: Add a timeout to subprocess.run ---
+            # Set a timeout for the yt-dlp process itself (e.g., 5 minutes = 300 seconds)
+            # This should be less than or equal to your Gunicorn timeout.
+            process_timeout = 300 
+            
+            result = subprocess.run(
+                cmd, 
+                capture_output=True, 
+                text=True, 
+                check=False,
+                timeout=process_timeout # Add timeout here
+            )
 
             if result.stdout:
                 logging.info(f"yt-dlp STDOUT:\n{result.stdout}")
@@ -115,6 +126,20 @@ def index():
         except FileNotFoundError:
             message = "❌ Error: 'yt-dlp' command not found. Please ensure yt-dlp is installed and in your system's PATH."
             logging.error(message)
+        except subprocess.TimeoutExpired: # Catch specific timeout error from subprocess
+            message = f"❌ Error: Video download timed out after {process_timeout} seconds. The video might be too large or the connection too slow."
+            logging.error(message)
+            # If a timeout occurs, the process might still be running.
+            # It's good practice to terminate it if it didn't finish.
+            # This requires storing the process object if you want to terminate it explicitly,
+            # but Gunicorn's worker timeout will typically handle this by killing the worker.
+            # For simplicity, we just report the error.
+            if downloaded_filepath and os.path.exists(downloaded_filepath):
+                try:
+                    os.remove(downloaded_filepath) # Clean up partial download
+                    logging.info(f"Cleaned up partial download after timeout: {downloaded_filepath}")
+                except Exception as e:
+                    logging.error(f"Error cleaning up partial file {downloaded_filepath}: {e}")
         except Exception as e:
             message = f"❌ An error occurred: {str(e)}"
             logging.error(f"Application error: {e}", exc_info=True)
