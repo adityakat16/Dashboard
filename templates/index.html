@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Stock Info Dashboard</title>
+    <title>YTDownload</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;500&display=swap" rel="stylesheet">
   <style>
         body {
@@ -92,9 +92,9 @@
         <div class="timestamp" id="timestamp">--:-- --</div>
 
         <form action="/get_stock_data" method="POST">
-            <input type="text" name="symbol" placeholder="e.g. TCS, INFY, RELIANCE" required />
+            <input type="text" name="symbol" placeholder="Enter URL to download" required />
             <br>
-            <button type="submit">Get Data</button>
+            <button type="submit">Get Video</button>
         </form>
 
         {% if data %}
