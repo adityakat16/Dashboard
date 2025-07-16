@@ -1,144 +1,68 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>YTDownload</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;500&display=swap" rel="stylesheet">
-  <style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <style>
         body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Rubik', sans-serif;
-    background: linear-gradient(135deg, #0f0f0f, #1a1a2e);
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #f0f0f0;
-}
+            margin: 0;
+            font-family: 'Rubik', sans-serif;
+            background: linear-gradient(135deg, #0f0f0f, #1a1a2e);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-.container {
-    background: rgba(30, 30, 60, 0.25);
-    border-radius: 20px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(16px);
-    padding: 40px 30px;
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
+        .container {
+            background: rgba(30, 30, 60, 0.4);
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
 
-h1 {
-    font-weight: 500;
-    color: #c3b5ff;
-    font-size: 24px;
-    margin-bottom: 5px;
-}
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            background: #1f1f2e;
+            color: white;
+        }
 
-.timestamp {
-    font-size: 14px;
-    color: #aaa;
-    margin-bottom: 25px;
-}
+        button {
+            padding: 12px;
+            width: 100%;
+            background: #8f94fb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
 
-form input[type="text"] {
-    padding: 12px 20px;
-    width: 80%;
-    border: 1px solid #444;
-    border-radius: 12px;
-    font-size: 16px;
-    outline: none;
-    margin-bottom: 15px;
-    background-color: #1f1f2e;
-    color: #f0f0f0;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-form input[type="text"]:focus {
-    border-color: #8f94fb;
-    box-shadow: 0 0 6px #8f94fb88;
-}
-
-form button {
-    background-color: #8f94fb;
-    color: white;
-    border: none;
-    padding: 12px 25px;
-    font-size: 16px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-form button:hover {
-    background-color: #6c6fe6;
-    box-shadow: 0 0 10px #8f94fb88;
-}
-
-.result {
-    margin-top: 25px;
-    font-size: 15px;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 15px;
-    border-radius: 12px;
-    text-align: left;
-    max-height: 300px;
-    overflow-y: auto;
-    box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.05);
-    color: #e0e0e0;
-}
-
+        .message {
+            margin-top: 20px;
+            color: #f88;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 id="greeting">Hello!</h1>
-        <div class="timestamp" id="timestamp">--:-- --</div>
-
-        <form action="/" method="POST" id="stockForm">
-            <input type="text" name="symbol" placeholder="Enter URL to download" required />
-            <br>
-            <button type="submit" id="getDataButton">Get Video</button>
+        <h2>Download YouTube Video</h2>
+        <form method="POST" action="/">
+            <input type="text" name="symbol" placeholder="Enter YouTube URL" required>
+            <button type="submit">Get Video</button>
         </form>
+        {% if message %}
+        <div class="message">{{ message }}</div>
+        {% endif %}
     </div>
-
-    <script>
-    function updateGreetingAndTimestamp() {
-        const now = new Date();
-        const hours = now.getHours();
-        const timestampElem = document.getElementById("timestamp");
-        const greetingElem = document.getElementById("greeting");
-
-        let greeting = "Hello!";
-        if (hours < 12) {
-            greeting = "Good Morning!";
-        } else if (hours < 17) {
-            greeting = "Good Afternoon!";
-        } else {
-            greeting = "Good Evening!";
-        }
-
-        greetingElem.textContent = `Hello, ${greeting}`;
-
-        const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-        const formattedTime = now.toLocaleTimeString(undefined, options);
-        timestampElem.textContent = formattedTime;
-    }
-
-    // Run initially and then every second
-    updateGreetingAndTimestamp();
-    setInterval(updateGreetingAndTimestamp, 1000);
-    const stockForm = document.getElementById('stockForm');
-const getDataButton = document.getElementById('getDataButton');
-
-stockForm.addEventListener('submit', (event) => {
-    getDataButton.disabled = true;
-    getDataButton.textContent = 'Processing...';
-});
-
-    </script>
-
 </body>
 </html>
