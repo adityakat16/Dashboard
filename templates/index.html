@@ -96,34 +96,41 @@
             <br>
             <button type="submit">Get Video</button>
         </form>
-
-        {% if data %}
-            <div class="result">
-                <pre>{{ data }}</pre>
-            </div>
-        {% endif %}
     </div>
 
     <script>
-               const now = new Date();
-        const hours = now.getHours();
-        const timestampElem = document.getElementById("timestamp");
-        const greetingElem = document.getElementById("greeting");
+               function updateGreetingAndTimestamp() {
+            const now = new Date();
+            const hours = now.getHours();
+            const timestampElem = document.getElementById("timestamp");
+            const greetingElem = document.getElementById("greeting");
 
-        let greeting = "Hello!";
-        if (hours < 12) {
-            greeting = "Good Morning!";
-        } else if (hours < 17) {
-            greeting = "Good Afternoon!";
-        } else {
-            greeting = "Good Evening!";
+            let greeting = "Hello!";
+            if (hours < 12) {
+                greeting = "Good Morning!";
+            } else if (hours < 17) {
+                greeting = "Good Afternoon!";
+            } else {
+                greeting = "Good Evening!";
+            }
+
+            greetingElem.textContent = `Hello, ${greeting}`;
+
+            const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            const formattedTime = now.toLocaleTimeString(undefined, options);
+            timestampElem.textContent = formattedTime;
         }
 
-        greetingElem.textContent = `Hello, ${greeting}`;
+        // Update time and greeting initially and then every second
+        updateGreetingAndTimestamp();
+        setInterval(updateGreetingAndTimestamp, 1000);
+         stockForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-        const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-        const formattedTime = now.toLocaleTimeString(undefined, options);
-        timestampElem.textContent = formattedTime;
+             getDataButton.classList.add('clicked'); // Add a class for styling
+            getDataButton.disabled = true; // Disable to prevent multiple clicks
+            getDataButton.textContent = 'Processing...'; // Optional: change text
+            console.log('Button clicked: Styling and text changed.');
     </script>
 </body>
 </html>
