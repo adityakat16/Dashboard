@@ -9,7 +9,7 @@ app = Flask(__name__)
 def index():
     message = ""
     if request.method == 'POST':
-        url = request.form['url']
+        url = request.form.get('symbol', '').strip()
         try:
             yt = YouTube(url)
             stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
