@@ -92,10 +92,10 @@
         <h1 id="greeting">Hello!</h1>
         <div class="timestamp" id="timestamp">--:-- --</div>
 
-        <form action="/get_stock_data" method="POST">
+        <form action="/get_stock_data" method="POST" id="stockForm">
             <input type="text" name="symbol" placeholder="Enter URL to download" required />
             <br>
-            <button type="submit">Get Video</button>
+            <button type="submit" id="getDataButton">Get Video</button>
         </form>
     </div>
 
@@ -125,6 +125,14 @@
     // Run initially and then every second
     updateGreetingAndTimestamp();
     setInterval(updateGreetingAndTimestamp, 1000);
+    const stockForm = document.getElementById('stockForm');
+const getDataButton = document.getElementById('getDataButton');
+
+stockForm.addEventListener('submit', (event) => {
+    getDataButton.disabled = true;
+    getDataButton.textContent = 'Processing...';
+});
+
     </script>
 
 </body>
