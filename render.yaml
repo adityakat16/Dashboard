@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: stock-scraper
-    env: docker
-    plan: free
-    autoDeploy: true
