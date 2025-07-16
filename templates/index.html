@@ -7,84 +7,89 @@
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;500&display=swap" rel="stylesheet">
   <style>
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Rubik', sans-serif;
-            background: linear-gradient(135deg, #ffe2e2, #8ec5fc);
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    margin: 0;
+    padding: 0;
+    font-family: 'Rubik', sans-serif;
+    background: linear-gradient(135deg, #0f0f0f, #1a1a2e);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f0f0f0;
+}
 
-        .container {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-            backdrop-filter: blur(12px);
-            padding: 40px 30px;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
+.container {
+    background: rgba(30, 30, 60, 0.25);
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(16px);
+    padding: 40px 30px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-        h1 {
-            font-weight: 500;
-            color: #4a3f55;
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
+h1 {
+    font-weight: 500;
+    color: #c3b5ff;
+    font-size: 24px;
+    margin-bottom: 5px;
+}
 
-        .timestamp {
-            font-size: 14px;
-            color: #6f6f6f;
-            margin-bottom: 25px;
-        }
+.timestamp {
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 25px;
+}
 
-        form input[type="text"] {
-            padding: 12px 20px;
-            width: 80%;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            font-size: 16px;    
-            outline: none;
-            margin-bottom: 15px;
-            background-color: #fff;
-            color: #333;
-            transition: border-color 0.3s ease;
-        }
+form input[type="text"] {
+    padding: 12px 20px;
+    width: 80%;
+    border: 1px solid #444;
+    border-radius: 12px;
+    font-size: 16px;
+    outline: none;
+    margin-bottom: 15px;
+    background-color: #1f1f2e;
+    color: #f0f0f0;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
 
-        form input[type="text"]:focus {
-            border-color: #8f94fb;
-        }
+form input[type="text"]:focus {
+    border-color: #8f94fb;
+    box-shadow: 0 0 6px #8f94fb88;
+}
 
-        form button {
-            background-color: #a18cd1;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            font-size: 16px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
+form button {
+    background-color: #8f94fb;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
 
-        form button:hover {
-            background-color: #8f94fb;
-        }
+form button:hover {
+    background-color: #6c6fe6;
+    box-shadow: 0 0 10px #8f94fb88;
+}
 
-        .result {
-            margin-top: 25px;
-            font-size: 15px;
-            background: #ffffffde;
-            padding: 15px;
-            border-radius: 12px;
-            text-align: left;
-            max-height: 300px;
-            overflow-y: auto;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
-            color: #3b3b3b;
-        }
+.result {
+    margin-top: 25px;
+    font-size: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: left;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.05);
+    color: #e0e0e0;
+}
+
     </style>
 </head>
 <body>
@@ -92,7 +97,7 @@
         <h1 id="greeting">Hello!</h1>
         <div class="timestamp" id="timestamp">--:-- --</div>
 
-        <form action="/" method="POST" id="stockForm">
+        <form action="/get_stock_data" method="POST" id="stockForm">
             <input type="text" name="symbol" placeholder="Enter URL to download" required />
             <br>
             <button type="submit" id="getDataButton">Get Video</button>
