@@ -95,7 +95,7 @@ def index():
                 "--fragment-retries", "10",
                 "--force-ipv4",  # Avoid IPv6 detection issues
                 "--geo-bypass",  # Try to bypass geo-restrictions
-                "--max-filesize", "500M"
+                "--max-filesize", "50000M"
             ]
 
             if proxy:
