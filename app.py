@@ -10,18 +10,17 @@ import re
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Try to auto-update yt-dlp
-try:
-    subprocess.run(["yt-dlp", "-U"], check=True)
-    logging.info("yt-dlp updated successfully.")
-except Exception as e:
-    logging.warning(f"Failed to update yt-dlp: {e}")
+# --- IMPORTANT ---
+# Removed the subprocess.run(["yt-dlp", "-U"]) call at app startup.
+# On Render, rely on your requirements.txt for yt-dlp version and trigger
+# a "Clear cache & deploy" to ensure it's updated during the build process.
+# Running it at runtime adds delay and can cause issues.
 
 app = Flask(__name__)
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# List of rotating user-agents (add more if you want, you lazy fuck)
+# List of rotating user-agents
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36",
@@ -31,26 +30,21 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
 ]
 
-# Proxy pool (add your own, or use free ones – but free ones suck balls and die quick)
-# Set via env var: PROXY_LIST="http://proxy1:port,http://proxy2:port"
+# Proxy pool - replace with YOUR OWN if possible, free ones are highly unreliable
 DEFAULT_PROXIES = [
-    # Example free proxies (replace with real ones, these are placeholders and probably dead)
-    "http://20.206.106.192:80",
-    "http://47.74.152.29:8888",
-    "http://190.2.137.49:80",
-    "http://207.166.178.240",
-    "http://123.141.181.8",
-    "http://159.203.61.169",
-    "http://167.99.124.118",
-    "http://219.65.73.81",
-    "http://139.59.1.14",
-    "http://38.147.98.190"
+    "http://20.206.106.192:80", # Example - probably dead
+    "http://47.74.152.29:8888", # Example - probably dead
+    "http://190.2.137.49:80", # Example - probably dead
+    # Add your own reliable proxies here
 ]
 PROXIES = os.environ.get("PROXY_LIST", ",".join(DEFAULT_PROXIES)).split(",")
 PROXIES = [p.strip() for p in PROXIES if p.strip()]
 
 if not PROXIES:
-    logging.warning("No proxies set. This might still trigger bot detection on heavy use.")
+    logging.warning("No proxies set from environment. Using default (likely dead) proxies or none. This might still trigger bot detection on heavy use.")
+else:
+    logging.info(f"Loaded {len(PROXIES)} proxies from PROXY_LIST environment variable.")
+
 
 # Accept various YouTube formats
 YOUTUBE_REGEX = r"(https?://)?(www\.)?(youtube\.com|youtu\.be)/.+"
@@ -66,85 +60,128 @@ def index():
             message = "❌ Please enter a YouTube video URL."
             return render_template("index.html", message=message)
 
+        # Basic URL validation for YouTube
         if not re.match(YOUTUBE_REGEX, url):
-            message = "❌ That's not a valid YouTube URL."
+            message = "❌ That's not a valid YouTube URL. Please provide a direct YouTube video link."
             return render_template("index.html", message=message)
 
         downloaded_filepath = None
         try:
             filename = f"{uuid.uuid4()}.mp4"
             filepath = os.path.join(DOWNLOAD_DIR, filename)
-            downloaded_filepath = filepath
+            downloaded_filepath = filepath # Store for cleanup
 
-            logging.info(f"Downloading: {url}{url} → {filepath}")
+            logging.info(f"Attempting to download: {url} to {filepath}")
 
-            # Pick a random user-agent
             user_agent = random.choice(USER_AGENTS)
-
-            # Pick a random proxy if available
             proxy = random.choice(PROXIES) if PROXIES else None
 
+            # Base yt-dlp command
             cmd = [
                 "yt-dlp",
                 "-f", "best[ext=mp4]/best",
                 "-o", filepath,
-                "--no-warnings",
+                "--no-warnings", # Suppress non-critical warnings
                 "--user-agent", user_agent,
-                "--retries", "10",  # More retries for robustness
-                "--retry-sleep", "exp=1:60",  # Exponential backoff sleep (1s to 60s)
+                "--retries", "10",
+                "--retry-sleep", "exp=1:60", # Exponential backoff for retries
                 "--fragment-retries", "10",
-                "--force-ipv4",  # Avoid IPv6 detection issues
-                "--geo-bypass",  # Try to bypass geo-restrictions
-                "--max-filesize", "150M"
+                "--force-ipv4", # Avoid IPv6 detection issues
+                "--geo-bypass", # Try to bypass geo-restrictions
+                "--max-filesize", "150M" # Adjusted for Render's 512MB RAM
             ]
 
             if proxy:
-                cmd.extend(["--proxy", proxy])  # Use extend to add properly
-                logging.info(f"Using proxy: {proxy}{proxy} and User-Agent: {user_agent}")
+                cmd.extend(["--proxy", proxy])
+                logging.info(f"Using proxy: {proxy} and User-Agent: {user_agent}")
+            else:
+                logging.info(f"No proxy used. User-Agent: {user_agent}")
 
-            # Add a small random sleep to mimic human behavior
+            # Add a small random sleep to mimic human behavior before first attempt
             time.sleep(random.uniform(1, 3))
 
-            result = subprocess.run(cmd + [url], capture_output=True, text=True, timeout=600)
+            logging.info(f"Executing yt-dlp command (attempt 1): {' '.join(cmd + [url])}")
+            result = subprocess.run(cmd + [url], capture_output=True, text=True, timeout=600) # Timeout after 10 min
 
+            # Check if first attempt failed
             if result.returncode != 0 or not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-                logging.error(result.stderr)
-                # If it fails, try once more with a different proxy/UA
-                logging.info("First attempt failed, retrying with new proxy/UA...")
-                user_agent = random.choice(USER_AGENTS)
-                proxy = random.choice(PROXIES) if PROXIES else None
-                cmd[cmd.index("--user-agent") + 1] = user_agent  # Update UA
-                if proxy:
-                    # Remove old proxy if exists and add new
-                    if "--proxy" in cmd:
-                        proxy_idx = cmd.index("--proxy")
-                        cmd.pop(proxy_idx)
-                        cmd.pop(proxy_idx)  # Remove arg and value
-                    cmd.extend(["--proxy", proxy])
-                time.sleep(random.uniform(2, 5))
-                result = subprocess.run(cmd + [url], capture_output=True, text=True, timeout=600)
-                if result.returncode != 0:
-                    raise Exception(f"Download failed even after retry. Error: {result.stderr}")
+                logging.error(f"First yt-dlp attempt failed (return code {result.returncode}).")
+                logging.error(f"STDOUT: {result.stdout}")
+                logging.error(f"STDERR: {result.stderr}")
+                logging.info("Retrying with a different proxy/User-Agent...")
 
+                # --- Prepare for Retry Attempt ---
+                user_agent_retry = random.choice(USER_AGENTS)
+                proxy_retry = random.choice(PROXIES) if PROXIES else None
+
+                # Rebuild cmd for retry to ensure clean proxy/UA update
+                cmd_retry = [
+                    "yt-dlp",
+                    "-f", "best[ext=mp4]/best",
+                    "-o", filepath,
+                    "--no-warnings",
+                    "--user-agent", user_agent_retry,
+                    "--retries", "10",
+                    "--retry-sleep", "exp=1:60",
+                    "--fragment-retries", "10",
+                    "--force-ipv4",
+                    "--geo-bypass",
+                    "--max-filesize", "150M"
+                ]
+                if proxy_retry:
+                    cmd_retry.extend(["--proxy", proxy_retry])
+                    logging.info(f"Using retry proxy: {proxy_retry} and User-Agent: {user_agent_retry}")
+                else:
+                    logging.info(f"No retry proxy used. User-Agent: {user_agent_retry}")
+
+                # Add a slightly longer random sleep before retry
+                time.sleep(random.uniform(2, 5))
+
+                logging.info(f"Executing yt-dlp command (attempt 2): {' '.join(cmd_retry + [url])}")
+                result = subprocess.run(cmd_retry + [url], capture_output=True, text=True, timeout=600)
+
+                # Check if second attempt also failed
+                if result.returncode != 0:
+                    logging.error(f"Second yt-dlp attempt failed (return code {result.returncode}).")
+                    logging.error(f"STDOUT: {result.stdout}")
+                    logging.error(f"STDERR: {result.stderr}")
+                    # Re-raise the exception to be caught by the outer try-except block
+                    raise Exception(f"Download failed even after retry. Error: {result.stderr.strip()}")
+                elif not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+                    logging.error(f"Second yt-dlp attempt succeeded, but file is missing or empty. STDOUT: {result.stdout}")
+                    raise Exception("Download completed but the file is empty or missing on disk.")
+
+
+            # --- Cleanup function for the temporary downloaded file ---
             @after_this_request
             def cleanup(response):
                 try:
-                    if os.path.exists(downloaded_filepath):
+                    if downloaded_filepath and os.path.exists(downloaded_filepath):
                         os.remove(downloaded_filepath)
-                        logging.info(f"Deleted: {downloaded_filepath}")
-
+                        logging.info(f"Deleted temporary file: {downloaded_filepath}")
                 except Exception as e:
-                    logging.error(f"Cleanup failed: {e}")
+                    logging.error(f"Cleanup failed for {downloaded_filepath}: {e}")
                 return response
 
+            # --- Send the file to the user ---
             return send_file(filepath, as_attachment=True, download_name="video.mp4", mimetype="video/mp4")
 
+        # --- Specific Exception Handling ---
+        except subprocess.TimeoutExpired as e:
+            logging.error(f"yt-dlp process timed out after {e.timeout} seconds for URL: {url}", exc_info=True)
+            if e.stdout: logging.error(f"Timeout STDOUT: {e.stdout}")
+            if e.stderr: logging.error(f"Timeout STDERR: {e.stderr}")
+            message = "❌ Error: The download timed out (over 10 minutes). The video might be too large or the connection too slow. Try a shorter video."
         except Exception as e:
-            logging.error(f"Exception: {e}")
-
-            message = f"❌ Error: {str(e)}. Try a different URL or check your proxies, shithead."
+            logging.error(f"An unexpected error occurred during the download process for URL: {url}", exc_info=True)
+            # General error message from the raised Exception (e.g., from yt-dlp's stderr)
+            message = f"❌ Error: {str(e)}. This could be a YouTube issue, an invalid URL, or a proxy problem. Try a different video."
 
     return render_template("index.html", message=message)
 
 if __name__ == "__main__":
+    # When running locally, Flask debug mode is useful.
+    # On Render, Gunicorn typically manages the app and provides logging.
+    # Ensure your Render 'start command' uses Gunicorn and binds to $PORT.
+    # Example Render Start Command: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1
     app.run(debug=True, host="0.0.0.0", port=5000)
