@@ -3,3 +3,4 @@ gunicorn
 setuptools
 pytube
 yt-dlp
+ffmpeg
