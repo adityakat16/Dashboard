@@ -17,8 +17,6 @@ try:
 except Exception as e:
     logging.warning(f"Failed to update yt-dlp: {e}")
 
-{e}")
-
 app = Flask(__name__)
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
