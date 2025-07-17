@@ -132,17 +132,16 @@ def index():
                     if os.path.exists(downloaded_filepath):
                         os.remove(downloaded_filepath)
                         logging.info(f"Deleted: {downloaded_filepath}")
-{downloaded_filepath}")
+
                 except Exception as e:
                     logging.error(f"Cleanup failed: {e}")
-{e}")
                 return response
 
             return send_file(filepath, as_attachment=True, download_name="video.mp4", mimetype="video/mp4")
 
         except Exception as e:
             logging.error(f"Exception: {e}")
-{e}")
+
             message = f"❌ Error: {str(e)}. Try a different URL or check your proxies, shithead."
 
     return render_template("index.html", message=message)
