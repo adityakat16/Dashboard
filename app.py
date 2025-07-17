@@ -63,11 +63,11 @@ def index():
         url = request.form.get("url", "").strip()
 
         if not url:
-            message = "❌ Please enter a YouTube video URL, you dumb fuck."
+            message = "❌ Please enter a YouTube video URL."
             return render_template("index.html", message=message)
 
         if not re.match(YOUTUBE_REGEX, url):
-            message = "❌ That's not a valid YouTube URL, try harder asshole."
+            message = "❌ That's not a valid YouTube URL."
             return render_template("index.html", message=message)
 
         downloaded_filepath = None
@@ -95,7 +95,7 @@ def index():
                 "--fragment-retries", "10",
                 "--force-ipv4",  # Avoid IPv6 detection issues
                 "--geo-bypass",  # Try to bypass geo-restrictions
-                "--max-filesize", "50000M"
+                "--max-filesize", "150M"
             ]
 
             if proxy:
