@@ -65,11 +65,11 @@ def index():
         url = request.form.get("url", "").strip()
 
         if not url:
-            message = "❌ Please enter a YouTube video URL."
+            message = "❌ Please enter a YouTube video URL, you dumb fuck."
             return render_template("index.html", message=message)
 
         if not re.match(YOUTUBE_REGEX, url):
-            message = "❌ That's not a valid YouTube URL."
+            message = "❌ That's not a valid YouTube URL, try harder asshole."
             return render_template("index.html", message=message)
 
         downloaded_filepath = None
@@ -101,8 +101,8 @@ def index():
             ]
 
             if proxy:
-                cmd += ["--proxy", proxy]
-                logging.info(f"Using proxy: {proxy} and User-Agent: {user_agent}")
+                cmd.extend(["--proxy", proxy])  # Use extend to add properly
+                logging.info(f"Using proxy: {proxy}{proxy} and User-Agent: {user_agent}")
 
             # Add a small random sleep to mimic human behavior
             time.sleep(random.uniform(1, 3))
@@ -115,9 +115,14 @@ def index():
                 logging.info("First attempt failed, retrying with new proxy/UA...")
                 user_agent = random.choice(USER_AGENTS)
                 proxy = random.choice(PROXIES) if PROXIES else None
-                if proxy:
-                    cmd += ["--proxy", proxy]  # Update proxy in cmd
                 cmd[cmd.index("--user-agent") + 1] = user_agent  # Update UA
+                if proxy:
+                    # Remove old proxy if exists and add new
+                    if "--proxy" in cmd:
+                        proxy_idx = cmd.index("--proxy")
+                        cmd.pop(proxy_idx)
+                        cmd.pop(proxy_idx)  # Remove arg and value
+                    cmd.extend(["--proxy", proxy])
                 time.sleep(random.uniform(2, 5))
                 result = subprocess.run(cmd + [url], capture_output=True, text=True, timeout=600)
                 if result.returncode != 0:
